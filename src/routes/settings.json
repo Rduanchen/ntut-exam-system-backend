@@ -1,0 +1,97 @@
+{
+  "testTitle": "北科大計算機程式設計期中考",
+  "description": "the test will be start at 18:00 and end at 20:00",
+  "publicKey": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCvad2H5XaTO0FYatEIyStVdcRTDoM63dD6LMbjC6ILtd5zuXi8vcYKKpu5zsfPZCMAdWUxXl1bx2JvVRaPGeB0zfZo2MU1xPp8fF6ivoagSPueoQH6zhlZ1+1ayg8lmhxf05UFLEAynM38MjHnv9+2VWUgSWPFKMPIK6JAW5AIzwIDAQAB",
+  "remoteHost": "http://localhost:3001",
+  "accessableUsers": [
+    {"id": "114590034", "name": "陳宥端"}
+  ],
+  "testTime": {
+    "startTime": "2023-11-13T10:30:00Z",
+    "endTime": "2023-11-13T12:30:00Z",
+    "forceQuit": true
+  },
+  "puzzles": [
+    {
+      "id": "1",
+      "name": "Sum of Two Numbers",
+      "language": "Python",
+      "testCases": [
+        {
+          "title": "Group1",
+          "id": 1,
+          "openTestCases": [
+            { "id": "1-1", "input": "2\n3\n", "output": "5" },
+            { "id": "1-2", "input": "10\n20\n", "output": "30" }
+          ],
+          "hiddenTestCases": [
+            { "id": "1-3", "input": "1\n2\n", "output": "3" },
+            { "id": "1-4", "input": "0\n0\n", "output": "0" }
+          ]
+        },
+        {
+          "title": "Group2",
+          "id": 2,
+          "openTestCases": [{ "id": "2-1", "input": "5\n7\n", "output": "12" }],
+          "hiddenTestCases": [
+            { "id": "2-2", "input": "100\n200\n", "output": "300" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "name": "Sum of Two Numbers",
+      "language": "Python",
+      "testCases": [
+        {
+          "title": "Group1",
+          "id": 1,
+          "openTestCases": [
+            { "id": "1-1", "input": "2\n3\n", "output": "5" },
+            { "id": "1-2", "input": "10\n20\n", "output": "30" }
+          ],
+          "hiddenTestCases": [
+            { "id": "1-3", "input": "1\n2\n", "output": "3" },
+            { "id": "1-4", "input": "0\n0\n", "output": "0" }
+          ]
+        },
+        {
+          "title": "Group2",
+          "id": 2,
+          "openTestCases": [{ "id": "2-1", "input": "5\n7\n", "output": "12" }],
+          "hiddenTestCases": [
+            { "id": "2-2", "input": "100\n200\n", "output": "300" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "name": "Sum of Two Numbers",
+      "language": "Python",
+      "testCases": [
+        {
+          "title": "Group1",
+          "id": 1,
+          "openTestCases": [
+            { "id": "1-1", "input": "2\n3\n", "output": "5" },
+            { "id": "1-2", "input": "10\n20\n", "output": "30" }
+          ],
+          "hiddenTestCases": [
+            { "id": "1-3", "input": "1\n2\n", "output": "3" },
+            { "id": "1-4", "input": "0\n0\n", "output": "0" }
+          ]
+        },
+        {
+          "title": "Group2",
+          "id": 2,
+          "openTestCases": [{ "id": "2-1", "input": "5\n7\n", "output": "12" }],
+          "hiddenTestCases": [
+            { "id": "2-2", "input": "100\n200\n", "output": "300" }
+          ]
+        }
+      ]
+    }
+  ]
+}
