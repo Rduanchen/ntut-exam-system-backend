@@ -1,65 +1,29 @@
-import express from "express";
-const pathToSwaggerUi = require("swagger-ui-dist").absolutePath();
-import swaggerJSDoc from "swagger-jsdoc";
-import swaggerUI from "swagger-ui-express";
-import cors from "cors";
-import session from "express-session";
-// import apiRouter from "./routes/index";
-import adminAPI from "./routes/adminApi";
-import userAPI from "./routes/userAPI";
-import { connectDB } from "./config/database";
-const app = express();
+import http from "http";
+import { Server } from "socket.io";
+import app from "./app"; // 你剛剛寫的 express 主程式
+import socketService from "./socket/SocketService";
 
-(async () => {
-  await connectDB();
-})();
+const server = http.createServer(app);
 
-declare module "express-session" {
-  interface SessionData {
-    [key: string]: any;
-  }
-}
+const io = new Server(server, {
+    cors: {
+        origin: ["http://localhost:5173", "http://localhost:3000"],
+        credentials: true,
+    },
+});
+socketService.initialize(io);
 
-declare global {
-  namespace Express {
-    interface Request {
-      sessionID: string;
-    }
-  }
-}
+io.on("connection", (socket) => {
+    console.log("Socket connected:", socket.id);
 
-const allowedOrigins = [
-  "http://localhost:5173", // 你的前端開發網址
-  "http://localhost:3000", // 或其他前端網址
-];
-
-app.use(
-  cors({
-    origin: true,
-    credentials: true, // 若要帶 cookie/session
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  })
-);
-app.use(express.json());
-app.use(
-  session({
-    secret: "secret-key",
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }, // 若走 HTTPS，請改 true 並設定 sameSite
-  })
-);
-app.use(express.json());
-
-app.use("/api", userAPI);
-app.use("/admin", adminAPI);
-
-app.get("/", function (req, res) {
-  res.send('This is TA api server.');
+    socket.on("msg", (data) => {
+        console.log("Message received:", data);
+        io.emit("msg", data);
+    });
 });
 
 const PORT = Number(process.env.PORT) || 3001;
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server is running on port ${PORT}`);
+server.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server is running on port ${PORT}`);
 });

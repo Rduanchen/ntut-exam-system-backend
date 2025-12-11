@@ -1,7 +1,6 @@
 import { UserActionLog } from '../models/UserActionLog';
 import { Sequelize } from 'sequelize-typescript';
 
-// 定義新增 Log 的參數介面
 interface CreateLogInput {
     student_ID: string;
     ip_address: string;
@@ -10,7 +9,6 @@ interface CreateLogInput {
 }
 
 export class UserLogService {
-
     /**
      * 1. 新增一筆資料
      */
@@ -86,42 +84,97 @@ export class UserLogService {
      */
     async checkSecurityAlerts() {
         try {
-            // 檢查 A: 一個學生使用超過 2 個不同的 IP
-            // SQL 邏輯: SELECT student_ID, COUNT(DISTINCT ip_address) FROM logs GROUP BY student_ID HAVING COUNT > 2
+            type AlertItem = {
+                studentID: string;
+                type: 'duplicate ip devices' | 'Try to quit the app';
+                messageID: string;
+                time: Date;
+                ip: string;
+                messeage: string;
+            };
+
+            const alerts: AlertItem[] = [];
+
+            // A: 一個學生使用超過 2 個不同的 IP
             const suspiciousStudents = await UserActionLog.findAll({
                 attributes: [
                     'student_ID',
-                    [Sequelize.fn('COUNT', Sequelize.fn('DISTINCT', Sequelize.col('ip_address'))), 'unique_ip_count']
+                    [Sequelize.fn('COUNT', Sequelize.fn('DISTINCT', Sequelize.col('ip_address'))), 'unique_ip_count'],
                 ],
                 group: ['student_ID'],
-                having: Sequelize.literal('COUNT(DISTINCT ip_address) > 2'),
-                raw: true, // 直接回傳純 JSON 物件，方便處理
-            });
-
-            // 檢查 B: 一個 IP 被超過 2 個不同的學生使用
-            // SQL 邏輯: SELECT ip_address, COUNT(DISTINCT student_ID) FROM logs GROUP BY ip_address HAVING COUNT > 2
-            const suspiciousIps = await UserActionLog.findAll({
-                attributes: [
-                    'ip_address',
-                    [Sequelize.fn('COUNT', Sequelize.fn('DISTINCT', Sequelize.col('student_ID'))), 'unique_student_count']
-                ],
-                group: ['ip_address'],
-                having: Sequelize.literal('COUNT(DISTINCT student_ID) > 2'),
+                having: Sequelize.where(
+                    Sequelize.fn('COUNT', Sequelize.fn('DISTINCT', Sequelize.col('ip_address'))),
+                    '>=',
+                    2
+                ),
                 raw: true,
             });
 
-            // 如果有發現異常，印出警告
-            if (suspiciousStudents.length > 0 || suspiciousIps.length > 0) {
+            if (suspiciousStudents.length > 0) {
+                const studentIDs = suspiciousStudents.map((s: any) => s.student_ID);
+                // 取每個學生最新的一筆紀錄作為 alert 的訊息來源
+                const latestLogs = await UserActionLog.findAll({
+                    where: { student_ID: studentIDs },
+                    order: [['student_ID', 'ASC'], ['timestamp', 'DESC']],
+                    raw: true,
+                });
+
+                const seen = new Set<string>();
+                for (const log of latestLogs) {
+                    if (seen.has(log.student_ID)) continue;
+                    seen.add(log.student_ID);
+                    alerts.push({
+                        studentID: log.student_ID,
+                        type: 'duplicate ip devices',
+                        messageID: String(log.id),
+                        time: log.timestamp,
+                        ip: log.ip_address,
+                        messeage: log.details,
+                    });
+                }
+            }
+
+            // B: detail 包含 "Application On Quit"
+            const quitLogs = await UserActionLog.findAll({
+                where: Sequelize.where(
+                    Sequelize.fn('LOWER', Sequelize.col('details')),
+                    'LIKE',
+                    '%application on quit%'
+                ),
+                order: [['timestamp', 'DESC']],
+                raw: true,
+            });
+
+            for (const log of quitLogs) {
+                alerts.push({
+                    studentID: log.student_ID,
+                    type: 'Try to quit the app',
+                    messageID: String(log.id),
+                    time: log.timestamp,
+                    ip: log.ip_address,
+                    messeage: log.details,
+                });
+            }
+
+            if (alerts.length > 0) {
                 console.warn('🚨 SECURITY ALERT TRIGGERED 🚨');
             }
 
-            return {
-                suspiciousStudents, // 格式: [{ student_ID: 'S123', unique_ip_count: '3' }, ...]
-                suspiciousIps,      // 格式: [{ ip_address: '192.168.1.1', unique_student_count: '5' }, ...]
-            };
-
+            return alerts;
         } catch (error) {
             console.error('❌ Security check failed:', error);
+            throw error;
+        }
+    }
+
+    async getAllLogs() {
+        try {
+            const logs = await UserActionLog.findAll({
+                order: [['timestamp', 'DESC']],
+            });
+            return logs;
+        } catch (error) {
+            console.error('❌ Get all logs failed:', error);
             throw error;
         }
     }

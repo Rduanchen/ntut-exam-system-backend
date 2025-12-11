@@ -8,6 +8,8 @@ import codeStorage from "../service/CodeStorage";
 import { judgeSingleCode, judgeAllCodeInStorage } from "../service/CodeJudger";
 import systemSettingsService from "../service/SystemSettingsServices";
 import scoreBoardService from "../service/ScoreBoardService";
+import userLogService from "../service/UserLogService";
+import alertLogService from "../service/AlertLogService";
 
 const router = Router();
 
@@ -36,7 +38,7 @@ router.post("/init", async (req, res) => {
   return res.json({ success: true, message: "User API initialized" });
 });
 router.get("/restore", async (req, res) => {
-  let response = await initService.resetDatabase();
+  let response = await initService.resetDatabase(true);
   return res.json({ success: true, message: "Database restored" });
 });
 
@@ -89,7 +91,52 @@ router.post("/judge-code", async (req, res) => {
 
 router.post("/all-student-scores", async (req, res) => {
   const result = await scoreBoardService.getAllScores();
-  console.dir(result, { depth: null });
+  res.json({
+    success: true,
+    result: result,
+  });
+});
+
+
+router.get("/update-alert-list", async (req, res) => {
+  const result = await alertLogService.updateAndCheckAlerts();
+  res.json({
+    success: true,
+    result: result,
+  });
+});
+
+router.get("/get-alert-logs", async (req, res) => {
+  const result = await alertLogService.getAll();
+  res.json({
+    success: true,
+    result: result,
+  });
+});
+
+router.post("/set-alert-ok-status", async (req, res) => {
+  const id = req.body.id;
+  const isOk = req.body.isOk;
+  const success = await alertLogService.setOkStatus(id, isOk);
+  res.json({
+    success: success,
+    message: success
+      ? "Alert status updated"
+      : "Failed to update alert status",
+  });
+});
+
+router.get("/get-student-log", async (req, res) => {
+  const studentID = req.body.studentID;
+  const result = await userLogService.getLogsByStudent(studentID);
+  res.json({
+    success: true,
+    result: result,
+  });
+});
+
+router.get("/get-all-logs", async (req, res) => {
+  const result = await userLogService.getAllLogs();
   res.json({
     success: true,
     result: result,

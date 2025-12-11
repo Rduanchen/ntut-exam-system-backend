@@ -5,6 +5,8 @@ import fs from "fs";
 import systemSettingsService from "../service/SystemSettingsServices";
 import scoreBoardService from "../service/ScoreBoardService";
 import userLogService from "../service/UserLogService";
+import socketService from "../socket/SocketService";
+import alertLogService from "../service/AlertLogService";
 
 const router = Router();
 const projectRoot = path.join(__dirname, "..");
@@ -89,7 +91,7 @@ router.get("/status", (req, res) => {
   });
 });
 
-router.post("/post-result", (req, res) => {
+router.post("/post-result", async (req, res) => {
   const studentID = req.body.studentInformation.id;
 
   const results = req.body.testResult;
@@ -97,15 +99,14 @@ router.post("/post-result", (req, res) => {
   for (const group in results) {
     correctCount += results[group].correctCount;
   };
-  console.log(
-    `Received results from studentID: ${studentID}, correctCount: ${correctCount}`
-  );
-  console.dir(req.body, { depth: null, colors: true });
-  scoreBoardService.updateStudentScore({
+
+  await scoreBoardService.updateStudentScore({
     student_ID: studentID,
     score: results,
     passed_amount: correctCount,
   });
+  const result = await scoreBoardService.getAllScores();
+  socketService.triggerScoreUpdateEvent(result);
   res.json({ success: true, message: "Results received successfully" });
 });
 
@@ -143,6 +144,7 @@ router.post("/user-action-logger", async (req, res) => {
     action_type: req.body.level || "unknown",
     details: req.body.details[0] || "",
   });
+  const result = await alertLogService.updateAndCheckAlerts();
   res.json({ success: true, message: "Action logged successfully" });
 });
 

@@ -92,9 +92,7 @@ export class ScoreBoardService {
       );
 
       console.log(`✅ 學號 ${studentID} 分數更新成功`);
-      // 印出現在該學生分數狀況
       const updatedScore = await this.getScoreByStudentId(studentID);
-      console.dir(updatedScore, { depth: null, colors: true });
       return true;
     } catch (error) {
       console.error("❌ Update score from judge results failed:", error);

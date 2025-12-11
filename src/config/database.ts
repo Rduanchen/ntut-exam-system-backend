@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { ScoreBoard } from '../models/ScoreBoard';
 import { UserActionLog } from '../models/UserActionLog';
 import { SystemSettings } from '../models/SystemSettings';
+import { AlertLog } from '../models/AlertLog'; // 新增這行，路徑依實際檔案放置調整
 
 dotenv.config();
 
@@ -15,25 +16,23 @@ export const sequelize = new Sequelize({
     database: process.env.DB_NAME || 'mydatabase',
 
     // 註冊所有 Models
-    models: [ScoreBoard, UserActionLog, SystemSettings],
+    models: [ScoreBoard, UserActionLog, SystemSettings, AlertLog], // 加入 AlertLog
 
-    logging: false, // 是否在 console 印出 SQL
+    logging: false,
 
-    // 連線池設定 (Connection Pool)
     pool: {
-        max: 20,      // 最大連線數
-        min: 0,       // 最小連線數
+        max: 20,
+        min: 0,
         acquire: 30000,
-        idle: 10000
-    }
+        idle: 10000,
+    },
 });
 
 export const connectDB = async () => {
     try {
         await sequelize.authenticate();
         console.log(`✅ 資料庫連線成功 (Port: ${process.env.DB_PORT})`);
-        // 同步 Table 結構 (開發階段使用，會自動建表)
-        await sequelize.sync({ alter: true });
+        await sequelize.sync({ alter: true }); // 開發階段自動建表/調整
         console.log('✅ 資料庫模型同步完成');
     } catch (error) {
         console.error('❌ 資料庫連線失敗:', error);

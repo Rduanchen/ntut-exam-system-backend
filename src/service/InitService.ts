@@ -3,6 +3,7 @@ import { Sequelize } from "sequelize-typescript";
 import { sequelize } from "../config/database"; // 引入我們建立的連線實例
 import { UserActionLog } from "../models/UserActionLog";
 import { SystemSettings } from "../models/SystemSettings";
+import { AlertLog } from "../models/AlertLog";
 import {
   TestConfig,
   ClientStudentInformation,
@@ -117,6 +118,14 @@ export class InitService {
           transaction: t,
         });
       }
+
+      // 4. 清除警示日誌
+      await AlertLog.destroy({
+        where: {},
+        truncate: true,
+        cascade: true,
+        transaction: t,
+      });
 
       await t.commit();
       console.log("✅ 資料庫已重置完畢 (Tables truncated)");
