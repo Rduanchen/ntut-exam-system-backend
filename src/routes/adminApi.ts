@@ -13,133 +13,153 @@ import alertLogService from "../service/AlertLogService";
 
 const router = Router();
 
-router.get("/heartbeat", (req, res) => {
-  res.json({ success: true, message: "User API is alive" });
-});
+const uploadDir = path.join(__dirname, "..", "upload");
+export const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
+export function requireFields(obj, fields: string[]) {
+  const missing = fields.filter(
+    (f) => obj[f] === undefined || obj[f] === null || obj[f] === ""
+  );
+  return missing;
+}
+export function isSafeStudentId(id: string) {
+  return /^[A-Za-z0-9_-]+$/.test(id);
+}
+
+router.get("/heartbeat", (_req, res) =>
+  res.json({ success: true, data: { message: "User API is alive" } })
+);
 
 const initService = new InitService();
-router.post("/init", async (req, res) => {
-  console.log("Initializing system with config:", req.body.config);
-  const { config: configJSON, studentList } = req.body;
+router.post(
+  "/init",
+  asyncHandler(async (req, res) => {
+    const missing = requireFields(req.body, ["config", "studentList"]);
+    if (missing.length)
+      return res
+        .status(400)
+        .json({ success: false, message: `Missing: ${missing.join(", ")}` });
+    const ok = await initService.initialize(
+      req.body.config,
+      req.body.studentList
+    );
+    if (!ok)
+      return res
+        .status(500)
+        .json({ success: false, message: "Initialization failed" });
+    res.json({ success: true, data: { message: "User API initialized" } });
+  })
+);
 
-  if (!configJSON || !studentList) {
-    return res.status(400).json({
-      success: false,
-      message: "Missing config or studentList in request body",
+router.get(
+  "/restore",
+  asyncHandler(async (_req, res) => {
+    await initService.resetDatabase(true);
+    res.json({ success: true, data: { message: "Database restored" } });
+  })
+);
+
+router.get(
+  "/is-configured",
+  asyncHandler(async (_req, res) => {
+    const isConfigured = await systemSettingsService.getConfig();
+    res.json({ success: true, data: { isConfigured: !!isConfigured } });
+  })
+);
+
+router.get(
+  "/get-submitted-students",
+  asyncHandler(async (_req, res) => {
+    const result = await codeStorage.getAllZipFiles(
+      path.join(__dirname, `../upload/`)
+    );
+    res.json({ success: true, data: { result: result } });
+  })
+);
+
+router.post(
+  "/judge-code",
+  asyncHandler(async (req, res) => {
+    const { studentID } = req.body;
+    if (
+      !studentID ||
+      typeof studentID !== "string" ||
+      !isSafeStudentId(studentID)
+    )
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid studentID" });
+
+    const zipPath = path.join(uploadDir, `${studentID}.zip`);
+    if (!fs.existsSync(zipPath))
+      return res
+        .status(404)
+        .json({ success: false, message: "Submission not found" });
+
+    const fileNames = await codeStorage.listFilesInZip(zipPath);
+    const result = await judgeAllCodeInStorage(studentID, fileNames);
+    res.json({ success: true, data: { result } });
+  })
+);
+
+router.post(
+  "/all-student-scores",
+  asyncHandler(async (_req, res) => {
+    const result = await scoreBoardService.getAllScores();
+    res.json({
+      success: true,
+      data: {
+        result: result,
+        success: true,
+      },
     });
-  }
+  })
+);
 
-  const ok = await initService.initialize(configJSON, studentList);
-  if (!ok) {
-    return res
-      .status(500)
-      .json({ success: false, message: "Initialization failed" });
-  }
-  return res.json({ success: true, message: "User API initialized" });
-});
-router.get("/restore", async (req, res) => {
-  let response = await initService.resetDatabase(true);
-  return res.json({ success: true, message: "Database restored" });
-});
+router.get(
+  "/update-alert-list",
+  asyncHandler(async (_req, res) => {
+    const alerts = await userLogService.checkSecurityAlerts();
+    const createdAlerts = await alertLogService.addFromAlerts(alerts);
+    alertLogService.resetCooldown(true);
+    res.json({ success: true, data: { createdAlerts } });
+  })
+);
 
-router.get("/is-configured", async (req, res) => {
-  let isConfigured = await systemSettingsService.getConfig();
-  if (isConfigured) {
-    res.json({ success: true, isConfigured: true });
-  } else {
-    res.json({ success: true, isConfigured: false });
-  }
-});
+router.get(
+  "/get-alert-logs",
+  asyncHandler(async (_req, res) => {
+    const result = await alertLogService.getAll();
+    res.json({ success: true, data: { result } });
+  })
+);
 
-// run submission code
+router.post(
+  "/set-alert-ok-status",
+  asyncHandler(async (req, res) => {
+    const missing = requireFields(req.body, ["id", "isOk"]);
+    if (missing.length)
+      return res
+        .status(400)
+        .json({ success: false, message: `Missing: ${missing.join(", ")}` });
+    const { id, isOk } = req.body;
+    const success = await alertLogService.setOkStatus(id, isOk);
+    res.json({
+      success,
+      data: {
+        message: success
+          ? "Alert status updated"
+          : "Failed to update alert status",
+      },
+    });
+  })
+);
 
-router.get("/get-submitted-students", async (req, res) => {
-  const result = await codeStorage.getAllZipFiles(
-    path.join(__dirname, `../upload/`)
-  );
-  res.json({ success: true, result: result });
-});
-
-router.get("/get-submissions", async (req, res) => {
-  const studentID = req.body.studentID;
-  console.log("Getting submissions for studentID:", studentID);
-  const fileNames = await codeStorage.listFilesInZip(
-    path.join(__dirname, `../upload/${studentID}.zip`)
-  );
-  res.json({
-    success: true,
-    fileNames: fileNames,
-  });
-});
-
-router.post("/judge-code", async (req, res) => {
-  const studentID = req.body.studentID;
-  const fileNames = await codeStorage.listFilesInZip(
-    path.join(__dirname, `../upload/${studentID}.zip`)
-  );
-  console.log("fileNames:", fileNames);
-
-  const result = await judgeAllCodeInStorage(studentID, fileNames);
-  console.dir(result, { depth: null });
-
-  res.json({
-    success: true,
-    result: result,
-  });
-});
-
-router.post("/all-student-scores", async (req, res) => {
-  const result = await scoreBoardService.getAllScores();
-  res.json({
-    success: true,
-    result: result,
-  });
-});
-
-
-router.get("/update-alert-list", async (req, res) => {
-  const alerts = await userLogService.checkSecurityAlerts();
-  const createdAlerts = await alertLogService.addFromAlerts(alerts);
-  res.json({
-    success: true,
-    result: createdAlerts,
-  });
-});
-
-router.get("/get-alert-logs", async (req, res) => {
-  const result = await alertLogService.getAll();
-  res.json({
-    success: true,
-    result: result,
-  });
-});
-
-router.post("/set-alert-ok-status", async (req, res) => {
-  const id = req.body.id;
-  const isOk = req.body.isOk;
-  const success = await alertLogService.setOkStatus(id, isOk);
-  res.json({
-    success: success,
-    message: success
-      ? "Alert status updated"
-      : "Failed to update alert status",
-  });
-});
-
-router.get("/get-student-log", async (req, res) => {
-  const studentID = req.body.studentID;
-  const result = await userLogService.getLogsByStudent(studentID);
-  res.json({
-    success: true,
-    result: result,
-  });
-});
-
-router.get("/get-all-logs", async (req, res) => {
-  const result = await userLogService.getAllLogs();
-  res.json({
-    success: true,
-    result: result,
-  });
-});
+router.get(
+  "/get-all-logs",
+  asyncHandler(async (_req, res) => {
+    const result = await userLogService.getAllLogs();
+    res.json({ success: true, data: { result } });
+  })
+);
 export default router;
