@@ -52,10 +52,10 @@ router.post(
 );
 
 router.get(
-  "/restore",
+  "/reset-database",
   asyncHandler(async (_req, res) => {
     await initService.resetDatabase(true);
-    res.json({ success: true, data: { message: "Database restored" } });
+    res.json({ success: true, data: { message: "Database rested" } });
   })
 );
 
