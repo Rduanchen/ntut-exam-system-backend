@@ -34,7 +34,10 @@ export function getDefaultScoreboard(puzzle: Puzzle[]): ScoreBoardFormat {
         hidden: hiddenTestCases,
       });
     }
-    defaultScoreBoard[problemIndex] = defaultPuzzle;
+    defaultScoreBoard[problemIndex] = {
+      subtasks: defaultPuzzle,
+      specialRuleResults: [],
+    };
   }
   return defaultScoreBoard;
 }

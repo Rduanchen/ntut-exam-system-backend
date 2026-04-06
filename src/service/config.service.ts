@@ -150,7 +150,7 @@ function checkOnlyTestDataChanged(
   if (
     oldConfig.judgerSettings.timeLimit !== newConfig.judgerSettings.timeLimit ||
     oldConfig.judgerSettings.memoryLimit !==
-      newConfig.judgerSettings.memoryLimit
+    newConfig.judgerSettings.memoryLimit
   ) {
     return {
       valid: false,
@@ -159,15 +159,15 @@ function checkOnlyTestDataChanged(
     };
   }
 
-  // 檢查 accessableUsers
+  // 檢查 accessibleUsers
   if (
-    JSON.stringify(oldConfig.accessableUsers) !==
-    JSON.stringify(newConfig.accessableUsers)
+    JSON.stringify(oldConfig.accessibleUsers) !==
+    JSON.stringify(newConfig.accessibleUsers)
   ) {
     return {
       valid: false,
       message: "不允許修改可存取使用者列表",
-      details: { field: "accessableUsers" },
+      details: { field: "accessibleUsers" },
     };
   }
 

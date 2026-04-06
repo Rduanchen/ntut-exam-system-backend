@@ -5,6 +5,7 @@ import {
   JudgeResultSocreBoard,
   ScoreBoardFormat,
   ClientResultFormat,
+  PuzzleResultPayload,
 } from "../types/scoreboard.type";
 
 function mapPistonJudgeResultsToScoreBoardFormat(
@@ -57,7 +58,9 @@ function overwriteScoreBoardWithPistonResults(
         visible: visibleStatus,
       });
     }
-    updatedScoreboard[problemID] = subtaskResult;
+    updatedScoreboard[problemID] = {
+      subtasks: subtaskResult,
+    };
   }
 
   return updatedScoreboard;
@@ -93,7 +96,11 @@ function updatePistonJudgeResultToScoreBoardFormat(
         visible: visibleStatus,
       });
     }
-    updatedScoreboard[problemID] = subtaskResult;
+    const existing = updatedScoreboard[problemID];
+    updatedScoreboard[problemID] = {
+      ...(existing ?? ({} as PuzzleResultPayload)),
+      subtasks: subtaskResult,
+    };
   }
 
   return updatedScoreboard;
@@ -126,7 +133,11 @@ function updateClientJudgeResultToScoreBoardFormat(
         visible: visibleStatus,
       });
     }
-    updatedScoreboard[problemID] = subtaskResult;
+    const existing = updatedScoreboard[problemID];
+    updatedScoreboard[problemID] = {
+      ...(existing ?? ({} as PuzzleResultPayload)),
+      subtasks: subtaskResult,
+    };
   }
 
   return updatedScoreboard;

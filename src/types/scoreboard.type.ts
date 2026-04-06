@@ -2,8 +2,22 @@ import { PistonSubtaskReply } from "./judger.type.js";
 import { StatusCode } from "piston-judger";
 
 export interface ScoreBoardFormat {
-  [problemID: string]: Subtasks[];
+  // Canonical shape: always a wrapper object.
+  [problemID: string]: PuzzleResultPayload;
 }
+
+export type SpecialRuleResultRecord = {
+  ruleId: string;
+  passed: boolean;
+  message: string;
+  reason?: string;
+  checkedAt: string; // ISO
+};
+
+export type PuzzleResultPayload = {
+  subtasks: Subtasks[];
+  specialRuleResults?: SpecialRuleResultRecord[];
+};
 
 export interface Subtasks {
   hidden: TestCaseRecord[];

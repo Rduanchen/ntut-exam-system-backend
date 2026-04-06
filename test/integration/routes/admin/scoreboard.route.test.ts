@@ -13,6 +13,17 @@ import {
   errorMiddleware,
 } from "../../../../src/middlewares/error-handler";
 
+// Avoid requiring a live socket server during tests
+import { vi } from "vitest";
+
+vi.mock("../../../../src/socket/SocketService", async () => {
+  return {
+    SocketService: {
+      triggerScoreUpdateEvent: vi.fn(),
+    },
+  };
+});
+
 describe("Scoreboard Route - Integration Tests", () => {
   let app: Express;
 
@@ -40,6 +51,7 @@ describe("Scoreboard Route - Integration Tests", () => {
       await ScoreBoard.bulkCreate([
         {
           student_ID: "A12345678",
+          student_name: "Test Student A",
           passed_puzzle_amount: 5,
           puzzle_amount: 10,
           subtask_amount: 20,
@@ -49,6 +61,7 @@ describe("Scoreboard Route - Integration Tests", () => {
         },
         {
           student_ID: "B98765432",
+          student_name: "Test Student B",
           passed_puzzle_amount: 3,
           puzzle_amount: 10,
           subtask_amount: 20,
@@ -80,6 +93,7 @@ describe("Scoreboard Route - Integration Tests", () => {
     it("應該成功取得指定學生的分數", async () => {
       await ScoreBoard.create({
         student_ID: "C11111111",
+        student_name: "Test Student",
         passed_puzzle_amount: 7,
         puzzle_amount: 10,
         subtask_amount: 20,

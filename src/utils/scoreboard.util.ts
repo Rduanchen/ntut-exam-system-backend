@@ -1,5 +1,9 @@
 import { ScoreBoard } from "../models/ScoreBoard";
-import { ScoreBoardFormat, Subtasks } from "../types/scoreboard.type";
+import {
+  ScoreBoardFormat,
+  Subtasks,
+  PuzzleResultPayload,
+} from "../types/scoreboard.type";
 
 const AC = "AC";
 
@@ -27,7 +31,7 @@ export function getPassedPuzzleAmount(scoreboard: ScoreBoardFormat) {
   let subtaskAmount = 0;
   let passedSubtaskAmount = 0;
   for (let problemID in scoreboard) {
-    let subtasks = scoreboard[problemID];
+    const subtasks = (scoreboard[problemID] as PuzzleResultPayload)?.subtasks ?? [];
     const { passedTestCaseAmount, testCaseAmount } =
       getPassedSubtaskAmount(subtasks);
     if (passedTestCaseAmount === testCaseAmount) {

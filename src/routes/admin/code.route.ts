@@ -25,15 +25,55 @@ const router = Router();
  *             properties:
  *               studentID:
  *                 type: string
- *               code:
- *                 type: string
- *               language:
- *                 type: string
- *               puzzleIndex:
- *                 type: number
+	*             required:
+	*               - studentID
  *     responses:
  *       200:
  *         description: Judgment result
+	*         content:
+	*           application/json:
+	*             schema:
+	*               type: object
+	*               properties:
+	*                 success:
+	*                   type: boolean
+	*                 message:
+	*                   type: string
+	*                 data:
+	*                   type: object
+	*                   properties:
+	*                     result:
+	*                       description: Scoreboard-like payload keyed by puzzle index
+	*                       type: object
+	*                       additionalProperties:
+	*                         oneOf:
+	*                           - description: Legacy shape (subtasks array)
+	*                             type: array
+	*                             items:
+	*                               type: object
+	*                           - description: Extended shape with specialRuleResults
+	*                             type: object
+	*                             properties:
+	*                               subtasks:
+	*                                 type: array
+	*                                 items:
+	*                                   type: object
+	*                               specialRuleResults:
+	*                                 type: array
+	*                                 items:
+	*                                   type: object
+	*                                   properties:
+	*                                     ruleId:
+	*                                       type: string
+	*                                     passed:
+	*                                       type: boolean
+	*                                     message:
+	*                                       type: string
+	*                                     reason:
+	*                                       type: string
+	*                                     checkedAt:
+	*                                       type: string
+	*                                       format: date-time
  */
 // Judge student code - requires studentID in body
 router.post("/judge", codeController.judgeCode);

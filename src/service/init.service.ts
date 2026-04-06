@@ -18,11 +18,11 @@ import studentNetworkService from "./student-network.service";
 import { Message } from "../models/Message";
 import { UserCryptoKey } from "../models/UserCryptoKey";
 async function initClientScoreBoard(
-  accessableUsers: AccessUser[],
+  accessibleUsers: AccessUser[],
   defaultScoreboard: ScoreBoardFormat,
 ): Promise<void> {
-  console.log("⚠️ Initializing scoreboard for users:", accessableUsers);
-  const records = accessableUsers.map((user, index) => {
+  console.log("⚠️ Initializing scoreboard for users:", accessibleUsers);
+  const records = accessibleUsers.map((user, index) => {
     return {
       student_ID: user.id,
       student_name: user.name,

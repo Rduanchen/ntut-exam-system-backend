@@ -34,7 +34,7 @@ const router = Router();
  *                     type: number
  *                   memoryLimit:
  *                     type: number
- *               accessableUsers:
+ *               accessibleUsers:
  *                 type: array
  *                 items:
  *                   type: object

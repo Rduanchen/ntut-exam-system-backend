@@ -31,5 +31,8 @@ export class ScoreBoard extends Model {
     allowNull: false,
     defaultValue: {},
   })
-  declare puzzle_results: Record<string, boolean>;
+  // Note: historically this stored a very small structure, but we now treat it as
+  // a flexible JSON payload (e.g. test-case results + special-rule results).
+  // Keep it permissive at the model layer; validation is done at the API boundary.
+  declare puzzle_results: Record<string, unknown>;
 }

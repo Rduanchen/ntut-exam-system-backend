@@ -8,6 +8,22 @@ const supportedLanguages = Object.keys(CONFIG.languages) as [
 
 const languageSchema = z.enum(supportedLanguages);
 
+// Special rules (static checks on source code; evaluated by client and/or during TA rejudge)
+const ruleConstraintSchema = z.enum(["MUST_HAVE", "MUST_NOT_HAVE"]);
+
+// We support a small set of rule types in v1 (no AST). Params are solver-specific.
+// Keep `params` flexible so we can add new solvers without changing the config structure.
+const specialRuleSchema: z.ZodType<any> = z.lazy(() =>
+  z.object({
+    id: z.string(),
+    type: z.enum(["regex", "use", "composite"]),
+    constraint: ruleConstraintSchema,
+    message: z.string(),
+    severity: z.enum(["info", "warn"]).optional(),
+    params: z.unknown(),
+  }),
+);
+
 // 單一測資的格式
 const testCaseSchema = z.object({
   input: z.string(),
@@ -28,6 +44,7 @@ const puzzleSchema = z.object({
   timeLimit: z.number().optional(), // 只有某些題目有，故設為 optional
   memoryLimit: z.number().optional(), // 同上
   subtasks: z.array(subtaskSchema),
+  specialRules: z.array(specialRuleSchema).optional(),
 });
 
 // 可以存取考試的使用者
@@ -44,7 +61,8 @@ export const examConfigSchema = z.object({
     timeLimit: z.number(),
     memoryLimit: z.number(),
   }),
-  accessableUsers: z.array(accessUserSchema),
+  accessibleUsers: z.array(accessUserSchema),
+  globalSpecialRules: z.array(specialRuleSchema).optional(),
   puzzles: z.array(puzzleSchema),
 });
 
@@ -54,6 +72,9 @@ export type Puzzle = z.infer<typeof puzzleSchema>;
 export type SubTask = z.infer<typeof subtaskSchema>;
 export type TestCase = z.infer<typeof testCaseSchema>;
 export type AccessUser = z.infer<typeof accessUserSchema>;
+
+export type SpecialRule = z.infer<typeof specialRuleSchema>;
+export type RuleConstraint = z.infer<typeof ruleConstraintSchema>;
 
 import { ZodError } from "zod";
 

@@ -30,6 +30,7 @@ describe("ScoreBoard Service - Unit Tests", () => {
       // 先創建一個學生記錄
       await ScoreBoard.create({
         student_ID: "A12345678",
+        student_name: "Alice",
         passed_puzzle_amount: 0,
         puzzle_amount: 0,
         subtask_amount: 0,
@@ -92,6 +93,7 @@ describe("ScoreBoard Service - Unit Tests", () => {
       const oldDate = new Date("2024-01-01");
       await ScoreBoard.create({
         student_ID: "B98765432",
+        student_name: "Bob",
         passed_puzzle_amount: 0,
         puzzle_amount: 0,
         subtask_amount: 0,
@@ -108,7 +110,11 @@ describe("ScoreBoard Service - Unit Tests", () => {
         where: { student_ID: "B98765432" },
       });
 
-      expect(updatedScore!.last_submit_time.getTime()).toBeGreaterThan(
+      expect(updatedScore).not.toBeNull();
+      if (!updatedScore || !updatedScore.last_submit_time) {
+        throw new Error("Expected updatedScore.last_submit_time to be set");
+      }
+      expect(updatedScore.last_submit_time.getTime()).toBeGreaterThan(
         oldDate.getTime(),
       );
     });
@@ -118,6 +124,7 @@ describe("ScoreBoard Service - Unit Tests", () => {
     it("應該成功取得學生分數", async () => {
       await ScoreBoard.create({
         student_ID: "C11111111",
+        student_name: "Carol",
         passed_puzzle_amount: 5,
         puzzle_amount: 10,
         subtask_amount: 20,
@@ -146,6 +153,7 @@ describe("ScoreBoard Service - Unit Tests", () => {
       await ScoreBoard.bulkCreate([
         {
           student_ID: "C33333333",
+          student_name: "Cathy",
           passed_puzzle_amount: 3,
           puzzle_amount: 10,
           subtask_amount: 20,
@@ -155,6 +163,7 @@ describe("ScoreBoard Service - Unit Tests", () => {
         },
         {
           student_ID: "A11111111",
+          student_name: "Amy",
           passed_puzzle_amount: 5,
           puzzle_amount: 10,
           subtask_amount: 20,
@@ -164,6 +173,7 @@ describe("ScoreBoard Service - Unit Tests", () => {
         },
         {
           student_ID: "B22222222",
+          student_name: "Ben",
           passed_puzzle_amount: 2,
           puzzle_amount: 10,
           subtask_amount: 20,
@@ -192,6 +202,7 @@ describe("ScoreBoard Service - Unit Tests", () => {
     it("應該在學生存在時返回 true", async () => {
       await ScoreBoard.create({
         student_ID: "D44444444",
+        student_name: "Dan",
         passed_puzzle_amount: 0,
         puzzle_amount: 0,
         subtask_amount: 0,

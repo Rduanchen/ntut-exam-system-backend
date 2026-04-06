@@ -111,8 +111,8 @@ describe("Scoreboard Controller - Integration Tests", () => {
       });
 
       const req = {
-        body: { studentID: "C11111111" },
-      } as Request;
+        query: { studentID: "C11111111" },
+      } as unknown as Request;
       const res = {
         status: vi.fn().mockReturnThis(),
         json: vi.fn(),
@@ -136,8 +136,8 @@ describe("Scoreboard Controller - Integration Tests", () => {
 
     it("應該在缺少 studentID 時返回 400 錯誤", async () => {
       const req = {
-        body: {},
-      } as Request;
+        query: {},
+      } as unknown as Request;
       const res = {
         status: vi.fn().mockReturnThis(),
         json: vi.fn(),
@@ -156,8 +156,8 @@ describe("Scoreboard Controller - Integration Tests", () => {
 
     it("應該在學生不存在時返回 404 錯誤", async () => {
       const req = {
-        body: { studentID: "NONEXISTENT" },
-      } as Request;
+        query: { studentID: "NONEXISTENT" },
+      } as unknown as Request;
       const res = {
         status: vi.fn().mockReturnThis(),
         json: vi.fn(),
@@ -201,7 +201,7 @@ describe("Scoreboard Controller - Integration Tests", () => {
       const { SocketService } =
         await import("../../../../src/socket/SocketService");
       vi.spyOn(SocketService, "triggerScoreUpdateEvent").mockImplementation(
-        () => {},
+        () => { },
       );
 
       await scoreboardController.broadcastScores(req, res, next);

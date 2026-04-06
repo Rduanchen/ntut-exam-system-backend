@@ -31,7 +31,7 @@ describe.skipIf(!shouldRunPistonTests)(
             timeLimit: 5000,
             memoryLimit: 51200,
           },
-          accessableUsers: [],
+          accessibleUsers: [],
           puzzles: [],
         };
 
@@ -60,7 +60,7 @@ describe.skipIf(!shouldRunPistonTests)(
             timeLimit: 5000,
             memoryLimit: 51200,
           },
-          accessableUsers: [],
+          accessibleUsers: [],
           puzzles: [],
         };
 
@@ -218,7 +218,7 @@ describe("Code Judger Service - Unit Tests with Mock", () => {
           timeLimit: 5000,
           memoryLimit: 51200,
         },
-        accessableUsers: [],
+        accessibleUsers: [],
         puzzles: [],
       };
 

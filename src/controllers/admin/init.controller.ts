@@ -5,7 +5,7 @@ import systemSettingsService from "../../service/sys-settings.service";
 export const init = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const config = req.body;
-    const studentList = config.accessableUsers;
+    const studentList = config.accessibleUsers;
     await initService.init(config, studentList);
     res
       .status(200)
