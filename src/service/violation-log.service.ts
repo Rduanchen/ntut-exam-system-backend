@@ -19,7 +19,7 @@ export interface LogViolationResult {
  * Service for handling violation logs.
  */
 export class ViolationLogService {
-  constructor(private readonly model = ViolationLog) {}
+  constructor(private readonly model = ViolationLog) { }
 
   /**
    * Log a violation:
@@ -72,6 +72,13 @@ export class ViolationLogService {
   /** Get all violation records. */
   async getAll(): Promise<ViolationLog[]> {
     return await this.model.findAll({ order: [["time", "DESC"]] });
+  }
+
+  async getLatestLogByAmount(amount: number): Promise<ViolationLog[]> {
+    return await this.model.findAll({
+      order: [["time", "DESC"]],
+      limit: amount,
+    });
   }
 
   /** Get a single record by id. */

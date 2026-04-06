@@ -13,7 +13,8 @@ export const getAlertLogs = async (
   next: NextFunction,
 ) => {
   try {
-    const result = await violationLogService.getAll();
+    // const result = await violationLogService.getAll();
+    const result = await violationLogService.getLatestLogByAmount(70);
     res.status(200).json({
       success: true,
       data: { logs: result },
