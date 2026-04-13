@@ -14,5 +14,3 @@ export interface ExecutionRequest extends Omit<
   files?: { name?: string; content: string }[]; // 程式碼檔案陣列
   compare_mode?: string; // 比對模式
 }
-
-

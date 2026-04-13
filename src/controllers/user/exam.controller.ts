@@ -143,7 +143,9 @@ export const uploadResult = async (
     // We grade on groups/subtasks, so compare by passed_subtask_amount.
     const originalSummary = getPassedPuzzleAmount(originalScoreboard);
     const updatedSummary = getPassedPuzzleAmount(updatedScoreboard as any);
-    if (updatedSummary.passedSubtaskAmount < originalSummary.passedSubtaskAmount) {
+    if (
+      updatedSummary.passedSubtaskAmount < originalSummary.passedSubtaskAmount
+    ) {
       res.status(200).json({
         success: true,
         message: "Ignored lower-score upload",
@@ -163,7 +165,10 @@ export const uploadResult = async (
         const UPLOAD_DIR = path.join(PROJECT_ROOT, "upload");
         const ZIP_EXTENSION = ".zip";
         const safeStudentID = path.basename(studentID);
-        const zipPath = path.join(UPLOAD_DIR, `${safeStudentID}${ZIP_EXTENSION}`);
+        const zipPath = path.join(
+          UPLOAD_DIR,
+          `${safeStudentID}${ZIP_EXTENSION}`,
+        );
 
         await fs.access(zipPath);
 
@@ -171,7 +176,8 @@ export const uploadResult = async (
         const checkedAt = new Date().toISOString();
 
         for (const filePathInZip of fileNames) {
-          const puzzleIndexRaw = codeStorage.getFileNameWithoutExt(filePathInZip);
+          const puzzleIndexRaw =
+            codeStorage.getFileNameWithoutExt(filePathInZip);
           const puzzleIndex = Number(puzzleIndexRaw);
           if (!Number.isFinite(puzzleIndex) || puzzleIndex < 0) continue;
 
@@ -185,7 +191,11 @@ export const uploadResult = async (
           if (effectiveRules.length === 0) {
             // Ensure we clear results if rules removed.
             const existing = (updatedScoreboard as any)[puzzleIndexRaw];
-            if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+            if (
+              existing &&
+              typeof existing === "object" &&
+              !Array.isArray(existing)
+            ) {
               (existing as any).specialRuleResults = [];
             }
             continue;
@@ -193,7 +203,10 @@ export const uploadResult = async (
 
           let sourceText = "";
           try {
-            sourceText = await codeStorage.unzipGetFileAsString(zipPath, filePathInZip);
+            sourceText = await codeStorage.unzipGetFileAsString(
+              zipPath,
+              filePathInZip,
+            );
           } catch (e: any) {
             const reason = `missing source: ${String(e?.message ?? e)}`;
             const specialRuleResults = effectiveRules.map((r) => ({
@@ -204,7 +217,11 @@ export const uploadResult = async (
               checkedAt,
             }));
             const existing = (updatedScoreboard as any)[puzzleIndexRaw];
-            if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+            if (
+              existing &&
+              typeof existing === "object" &&
+              !Array.isArray(existing)
+            ) {
               (existing as any).specialRuleResults = specialRuleResults;
             }
             continue;
@@ -215,12 +232,14 @@ export const uploadResult = async (
             sourceText,
           });
 
-          const specialRuleResults = (results as Array<{
-            ruleId: string;
-            passed: boolean;
-            message: string;
-            reason?: string;
-          }>).map((r) => ({
+          const specialRuleResults = (
+            results as Array<{
+              ruleId: string;
+              passed: boolean;
+              message: string;
+              reason?: string;
+            }>
+          ).map((r) => ({
             ruleId: r.ruleId,
             passed: r.passed,
             message: r.message,
@@ -229,13 +248,20 @@ export const uploadResult = async (
           }));
 
           const existing = (updatedScoreboard as any)[puzzleIndexRaw];
-          if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+          if (
+            existing &&
+            typeof existing === "object" &&
+            !Array.isArray(existing)
+          ) {
             (existing as any).specialRuleResults = specialRuleResults;
           }
         }
 
         // Persist any specialRuleResults changes.
-        await scoreBoardService.updateStudentScore(updatedScoreboard, studentID);
+        await scoreBoardService.updateStudentScore(
+          updatedScoreboard,
+          studentID,
+        );
       }
     } catch {
       // If the zip isn't uploaded yet (or can't be read), we skip.
@@ -252,7 +278,7 @@ export const uploadResult = async (
       ip_address: ip,
       mac_address: mac,
       action_type: "upload_test_result",
-      details: `Uploaded test result: ${JSON.stringify(testResult)}`,
+      details: `Uploaded test result`,
     });
 
     res.status(200).json({
@@ -305,7 +331,8 @@ export const uploadProgram = async (
     try {
       const config = await systemSettingsService.getConfig();
       if (config) {
-        const studentScore = await scoreBoardService.getScoreByStudentId(studentID);
+        const studentScore =
+          await scoreBoardService.getScoreByStudentId(studentID);
         const scoreboard = (studentScore?.puzzle_results || {}) as any;
 
         const zipPath = file.path as string;
@@ -313,7 +340,8 @@ export const uploadProgram = async (
         const checkedAt = new Date().toISOString();
 
         for (const filePathInZip of fileNames) {
-          const puzzleIndexRaw = codeStorage.getFileNameWithoutExt(filePathInZip);
+          const puzzleIndexRaw =
+            codeStorage.getFileNameWithoutExt(filePathInZip);
           const puzzleIndex = Number(puzzleIndexRaw);
           if (!Number.isFinite(puzzleIndex) || puzzleIndex < 0) continue;
 
@@ -326,7 +354,11 @@ export const uploadProgram = async (
           });
 
           const existing = scoreboard[puzzleIndexRaw];
-          if (!existing || typeof existing !== 'object' || Array.isArray(existing)) {
+          if (
+            !existing ||
+            typeof existing !== "object" ||
+            Array.isArray(existing)
+          ) {
             continue;
           }
 
@@ -337,7 +369,10 @@ export const uploadProgram = async (
 
           let sourceText = "";
           try {
-            sourceText = await codeStorage.unzipGetFileAsString(zipPath, filePathInZip);
+            sourceText = await codeStorage.unzipGetFileAsString(
+              zipPath,
+              filePathInZip,
+            );
           } catch (e: any) {
             const reason = `missing source: ${String(e?.message ?? e)}`;
             (existing as any).specialRuleResults = effectiveRules.map((r) => ({
@@ -355,12 +390,14 @@ export const uploadProgram = async (
             sourceText,
           });
 
-          (existing as any).specialRuleResults = (results as Array<{
-            ruleId: string;
-            passed: boolean;
-            message: string;
-            reason?: string;
-          }>).map((r) => ({
+          (existing as any).specialRuleResults = (
+            results as Array<{
+              ruleId: string;
+              passed: boolean;
+              message: string;
+              reason?: string;
+            }>
+          ).map((r) => ({
             ruleId: r.ruleId,
             passed: r.passed,
             message: r.message,
@@ -369,7 +406,10 @@ export const uploadProgram = async (
           }));
         }
 
-        await scoreBoardService.updateStudentScore(scoreboard as any, studentID);
+        await scoreBoardService.updateStudentScore(
+          scoreboard as any,
+          studentID,
+        );
         const allScores = await scoreBoardService.getAllScores();
         SocketService.triggerScoreUpdateEvent(allScores);
       }

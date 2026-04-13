@@ -4,7 +4,7 @@ import { ExecutionRequest, PistonSubtaskReply } from "../types/judger.type";
 import { ErrorHandler } from "../middlewares/error-handler";
 import systemSettingsService from "./sys-settings.service";
 import codeStorage from "./code-storage";
-import { getZipFilePath } from "../utils/file-operator.util";
+import { getZipFilePath, normalizeFilePath } from "../utils/file-operator.util";
 import { ExamConfig, SubTask, TestCase } from "../schemas/config.schemas";
 import {
   ScoreBoardFormat,
@@ -34,7 +34,8 @@ export function getJudgeRequest(
     language: getCorrectPistonLanguage(puzzle.language),
     version: JudgerConfig.languages[puzzle.language].version,
     run_timeout: puzzle.timeLimit || config.judgerSettings.timeLimit,
-    run_memory_limit: (puzzle.memoryLimit || config.judgerSettings.memoryLimit) * 1000, // Convert byte to kilobyte
+    run_memory_limit:
+      (puzzle.memoryLimit || config.judgerSettings.memoryLimit) * 1000, // Convert byte to kilobyte
     compare_mode: puzzle.compareMode || "loose",
   };
 }
@@ -180,4 +181,45 @@ export async function judgeAllSubmittedPuzzles(
   return allResults;
 }
 
-// export function updateJudgeResult(original: ScoreResultFormat) {}
+export async function judgeAllSubmissionsForPath(
+  filePath: string,
+  fileNames: string[],
+): Promise<JudgeResultSocreBoard> {
+  if (fileNames.length === 0) return {};
+
+  const config = await systemSettingsService.getConfig();
+  if (!config) throw new ErrorHandler(500, "No system config found");
+
+  const limit = pLimit(MAX_CONCURRENT_JUDGES);
+  const judgeTasks = fileNames.map((problemID) => {
+    // 使用 limit 包裝異步邏輯
+    return limit(async () => {
+      // 1. 讀取程式碼
+      const codeString = await codeStorage.unzipGetFileAsString(
+        await normalizeFilePath(filePath),
+        problemID,
+      );
+      // 2. 取得題目索引與配置
+      const questionIndex = codeStorage.getFileNameWithoutExt(problemID);
+      const subTasks = getSubTasks(config, Number(questionIndex));
+      const puzzle = getPuzzles(config, Number(questionIndex));
+
+      // 3. 執行評測
+      const result = await judgePuzzle(
+        subTasks,
+        getJudgeRequest(config, puzzle),
+        codeString,
+      );
+      return { problemID, result };
+    });
+  });
+
+  // 這裡的 Promise.all 會同時啟動所有 task，但 p-limit 會確保同一時間只有 15 個在跑
+  const completedTasks = await Promise.all(judgeTasks);
+
+  const allResults: JudgeResultSocreBoard = {};
+  for (const task of completedTasks) {
+    allResults[codeStorage.getFileNameWithoutExt(task.problemID)] = task.result;
+  }
+  return allResults;
+}

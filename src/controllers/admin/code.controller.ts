@@ -2,7 +2,10 @@ import { Request, Response, NextFunction } from "express";
 import path from "path";
 import fs from "fs/promises";
 import codeStorage from "../../service/code-storage";
-import { judgeAllSubmittedPuzzles } from "../../service/code-judger.service";
+import {
+  judgeAllSubmittedPuzzles,
+  judgeAllSubmissionsForPath,
+} from "../../service/code-judger.service";
 import scoreBoardService from "../../service/scoreboard.service";
 import systemSettingsService from "../../service/sys-settings.service";
 import { ErrorHandler } from "../../middlewares/error-handler";
@@ -94,7 +97,10 @@ export const judgeCode = async (
 
     // Attach special-rule evaluation results (Approach B: store latest status in the same payload)
     // We do this *after* piston scoreboard mapping so the payload shape stays backward compatible.
-    const updatedScoreboard: any = { ...defaultScoreboard, ...pistonScoreboard };
+    const updatedScoreboard: any = {
+      ...defaultScoreboard,
+      ...pistonScoreboard,
+    };
     const checkedAt = new Date().toISOString();
 
     for (const filePathInZip of fileNames) {
@@ -118,7 +124,10 @@ export const judgeCode = async (
 
       let sourceText = "";
       try {
-        sourceText = await codeStorage.unzipGetFileAsString(zipPath, filePathInZip);
+        sourceText = await codeStorage.unzipGetFileAsString(
+          zipPath,
+          filePathInZip,
+        );
       } catch (e: any) {
         const reason = `missing source: ${String(e?.message ?? e)}`;
         const specialRuleResults = effectiveRules.map((r) => ({
@@ -128,7 +137,11 @@ export const judgeCode = async (
           reason,
           checkedAt,
         }));
-        setPuzzleSpecialRuleResults(updatedScoreboard, puzzleIndexRaw, specialRuleResults);
+        setPuzzleSpecialRuleResults(
+          updatedScoreboard,
+          puzzleIndexRaw,
+          specialRuleResults,
+        );
         continue;
       }
 
@@ -137,7 +150,14 @@ export const judgeCode = async (
         sourceText,
       });
 
-      const specialRuleResults = (results as Array<{ ruleId: string; passed: boolean; message: string; reason?: string }>).map((r) => ({
+      const specialRuleResults = (
+        results as Array<{
+          ruleId: string;
+          passed: boolean;
+          message: string;
+          reason?: string;
+        }>
+      ).map((r) => ({
         ruleId: r.ruleId,
         passed: r.passed,
         message: r.message,
@@ -146,11 +166,144 @@ export const judgeCode = async (
       }));
 
       // Persist into the scoreboard payload.
-      setPuzzleSpecialRuleResults(updatedScoreboard, puzzleIndexRaw, specialRuleResults);
+      setPuzzleSpecialRuleResults(
+        updatedScoreboard,
+        puzzleIndexRaw,
+        specialRuleResults,
+      );
     }
 
     // Update student score in scoreboard
     await scoreBoardService.updateStudentScore(updatedScoreboard, studentID);
+
+    // Trigger socket event to notify all clients about score update
+    const allScores = await scoreBoardService.getAllScores();
+    SocketService.triggerScoreUpdateEvent(allScores);
+
+    res.status(200).json({
+      success: true,
+      message: "Code judged successfully",
+      data: { result: updatedScoreboard },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const judgeCodeFromFilePath = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { filePath } = req.body;
+    console.log("Received filePath for judging:", filePath);
+
+    if (
+      !filePath ||
+      typeof filePath !== "string" ||
+      !filePath.endsWith(".zip")
+    ) {
+      throw new ErrorHandler(400, "Invalid filePath");
+    }
+
+    const zipPath = filePath;
+
+    try {
+      await fs.access(zipPath);
+    } catch {
+      throw new ErrorHandler(404, "Submission not found");
+    }
+
+    // Get all files in the zip
+    const fileNames = await codeStorage.listFilesInZip(zipPath);
+
+    // Judge all submitted puzzles
+    const judgeResults = await judgeAllSubmissionsForPath(zipPath, fileNames);
+
+    // Build default scoreboard (all problems as WA) then overwrite with piston results
+    const config = await systemSettingsService.getConfig();
+    if (!config) throw new ErrorHandler(500, "No system config found");
+    const defaultScoreboard = getDefaultScoreboard(config.puzzles);
+    const pistonScoreboard = overwriteScoreBoardWithPistonResults(judgeResults);
+
+    // Attach special-rule evaluation results (Approach B: store latest status in the same payload)
+    // We do this *after* piston scoreboard mapping so the payload shape stays backward compatible.
+    const updatedScoreboard: any = {
+      ...defaultScoreboard,
+      ...pistonScoreboard,
+    };
+    const checkedAt = new Date().toISOString();
+
+    for (const filePathInZip of fileNames) {
+      const puzzleIndexRaw = codeStorage.getFileNameWithoutExt(filePathInZip);
+      const puzzleIndex = Number(puzzleIndexRaw);
+      if (!Number.isFinite(puzzleIndex) || puzzleIndex < 0) continue;
+
+      const puzzle = config.puzzles?.[puzzleIndex];
+      if (!puzzle) continue;
+
+      const effectiveRules = getEffectiveSpecialRules({
+        examConfig: config,
+        puzzleIndex,
+      });
+
+      // If no rules configured, persist empty list.
+      if (effectiveRules.length === 0) {
+        setPuzzleSpecialRuleResults(updatedScoreboard, puzzleIndexRaw, []);
+        continue;
+      }
+
+      let sourceText = "";
+      try {
+        sourceText = await codeStorage.unzipGetFileAsString(
+          zipPath,
+          filePathInZip,
+        );
+      } catch (e: any) {
+        const reason = `missing source: ${String(e?.message ?? e)}`;
+        const specialRuleResults = effectiveRules.map((r) => ({
+          ruleId: r.id,
+          passed: false,
+          message: r.message,
+          reason,
+          checkedAt,
+        }));
+        setPuzzleSpecialRuleResults(
+          updatedScoreboard,
+          puzzleIndexRaw,
+          specialRuleResults,
+        );
+        continue;
+      }
+
+      const results = evaluateSpecialRules(effectiveRules, {
+        language: puzzle.language,
+        sourceText,
+      });
+
+      const specialRuleResults = (
+        results as Array<{
+          ruleId: string;
+          passed: boolean;
+          message: string;
+          reason?: string;
+        }>
+      ).map((r) => ({
+        ruleId: r.ruleId,
+        passed: r.passed,
+        message: r.message,
+        reason: r.reason,
+        checkedAt,
+      }));
+
+      // Persist into the scoreboard payload.
+      setPuzzleSpecialRuleResults(
+        updatedScoreboard,
+        puzzleIndexRaw,
+        specialRuleResults,
+      );
+    }
 
     // Trigger socket event to notify all clients about score update
     const allScores = await scoreBoardService.getAllScores();
